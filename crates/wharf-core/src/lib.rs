@@ -8,12 +8,18 @@
 //! This crate provides:
 //! - SQL AST parsing for the database proxy ("Virtual Sharding")
 //! - Cryptographic utilities (Ed25519 signing, BLAKE3 hashing, Argon2id)
+//! - File integrity verification (BLAKE3 manifests)
+//! - File synchronization (rsync over SSH)
+//! - Fleet configuration management
 //! - Configuration types for Nickel schema validation
 //! - Common error types
 
 pub mod crypto;
 pub mod db_policy;
 pub mod errors;
+pub mod fleet;
+pub mod integrity;
+pub mod sync;
 pub mod types;
 
 /// The current version of the Wharf protocol

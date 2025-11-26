@@ -16,8 +16,11 @@
 //! - `wharf db` - Database configuration commands
 
 use clap::{Args, Parser, Subcommand};
-use tracing::{info, Level};
+use std::path::PathBuf;
+use tracing::{info, warn, Level};
 use tracing_subscriber::FmtSubscriber;
+
+mod ops;
 
 // =============================================================================
 // CLI STRUCTURE
@@ -519,20 +522,37 @@ async fn main() -> anyhow::Result<()> {
                 println!(">>> TOUCH FIDO2 KEY NOW <<<");
             }
 
-            println!("Establishing Zero Trust Mesh to {}...", yacht);
+            // Load fleet configuration
+            let config_dir = PathBuf::from(&cli.config);
+            let fleet_path = config_dir.join("fleet.json");
+            let fleet = ops::fleet::load_fleet(&fleet_path)?;
 
-            if dry_run {
-                println!("[DRY RUN] Would sync the following:");
+            // Build source directory path
+            let source_dir = config_dir.join("site");
+            if !source_dir.exists() {
+                anyhow::bail!("Source directory not found: {:?}. Create it with site files.", source_dir);
             }
 
-            if force {
-                println!("Force sync enabled - ignoring hash matches");
-            }
+            // Execute mooring
+            let options = ops::moor::MoorOptions {
+                force,
+                dry_run,
+                emergency,
+                layers,
+            };
 
-            if !layers.is_empty() {
-                println!("Syncing layers: {:?}", layers);
-            } else {
-                println!("Syncing all layers: db, files, config");
+            match ops::moor::execute_moor(&fleet, &yacht, &source_dir, &options) {
+                Ok(result) => {
+                    println!();
+                    println!("✓ Mooring complete!");
+                    println!("  Yacht: {}", result.yacht_name);
+                    println!("  Files synced: {}", result.files_synced);
+                    println!("  Integrity verified: {}", result.integrity_verified);
+                }
+                Err(e) => {
+                    eprintln!("✗ Mooring failed: {}", e);
+                    std::process::exit(1);
+                }
             }
         }
 
@@ -591,9 +611,55 @@ async fn main() -> anyhow::Result<()> {
                 println!("Output: {}", output);
             }
             SecCommands::Verify { target, manifest } => {
+                let config_dir = PathBuf::from(&cli.config);
+
+                // Determine manifest path
+                let manifest_path = if let Some(m) = manifest {
+                    PathBuf::from(m)
+                } else {
+                    config_dir.join("site").join(".wharf-manifest.json")
+                };
+
+                if !manifest_path.exists() {
+                    anyhow::bail!("Manifest not found: {:?}. Run 'wharf moor' first to generate one.", manifest_path);
+                }
+
+                // Determine target directory
+                let target_dir = if target == "local" {
+                    config_dir.join("site")
+                } else {
+                    // For remote yachts, we'd need to pull the manifest first
+                    warn!("Remote verification not yet implemented, verifying local site directory");
+                    config_dir.join("site")
+                };
+
                 println!("Verifying file integrity for: {}", target);
-                if let Some(m) = manifest {
-                    println!("Using manifest: {}", m);
+                println!("Using manifest: {:?}", manifest_path);
+
+                match ops::integrity::verify_against_manifest(&target_dir, &manifest_path, false) {
+                    Ok(result) => {
+                        println!();
+                        if result.is_ok() {
+                            println!("✓ Integrity verification PASSED");
+                            println!("  {} files verified", result.passed.len());
+                        } else {
+                            println!("✗ Integrity verification FAILED");
+                            if !result.mismatched.is_empty() {
+                                println!("  {} files mismatched", result.mismatched.len());
+                            }
+                            if !result.missing.is_empty() {
+                                println!("  {} files missing", result.missing.len());
+                            }
+                            if !result.unexpected.is_empty() {
+                                println!("  {} unexpected files", result.unexpected.len());
+                            }
+                            std::process::exit(1);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("✗ Verification failed: {}", e);
+                        std::process::exit(1);
+                    }
                 }
             }
             SecCommands::Scan { target, scan_type } => {
@@ -624,29 +690,41 @@ async fn main() -> anyhow::Result<()> {
             }
         },
 
-        Commands::Fleet(args) => match args.command {
-            FleetCommands::List { long } => {
-                println!("Fleet members:");
-                if long {
-                    println!("  NAME            IP              DOMAIN                STATUS");
+        Commands::Fleet(args) => {
+            let config_dir = PathBuf::from(&cli.config);
+            let fleet_path = config_dir.join("fleet.json");
+
+            match args.command {
+                FleetCommands::List { long } => {
+                    let fleet = ops::fleet::load_fleet(&fleet_path)?;
+                    ops::fleet::list_yachts(&fleet, long);
+                }
+                FleetCommands::Add { name, ip, domain, adapter } => {
+                    let mut fleet = ops::fleet::load_fleet(&fleet_path)?;
+                    ops::fleet::add_yacht(&mut fleet, &name, &ip, &domain, &adapter)?;
+                    ops::fleet::save_fleet(&fleet, &fleet_path)?;
+                    println!("✓ Added yacht '{}' to fleet", name);
+                    println!("  IP: {}", ip);
+                    println!("  Domain: {}", domain);
+                    println!("  Adapter: {}", adapter);
+                }
+                FleetCommands::Remove { name, force } => {
+                    if !force {
+                        println!("This will remove yacht '{}' from the fleet.", name);
+                        println!("Use --force to confirm removal.");
+                        return Ok(());
+                    }
+                    let mut fleet = ops::fleet::load_fleet(&fleet_path)?;
+                    ops::fleet::remove_yacht(&mut fleet, &name)?;
+                    ops::fleet::save_fleet(&fleet, &fleet_path)?;
+                    println!("✓ Removed yacht '{}' from fleet", name);
+                }
+                FleetCommands::Status { name } => {
+                    let fleet = ops::fleet::load_fleet(&fleet_path)?;
+                    ops::fleet::show_status(&fleet, &name);
                 }
             }
-            FleetCommands::Add { name, ip, domain, adapter } => {
-                println!("Adding yacht: {}", name);
-                println!("  IP: {}", ip);
-                println!("  Domain: {}", domain);
-                println!("  Adapter: {}", adapter);
-            }
-            FleetCommands::Remove { name, force } => {
-                println!("Removing yacht: {}", name);
-                if !force {
-                    println!("Use --force to confirm removal");
-                }
-            }
-            FleetCommands::Status { name } => {
-                println!("Fleet status: {}", name);
-            }
-        },
+        }
 
         Commands::Container(args) => match args.command {
             ContainerCommands::Build { image, push, registry } => {
