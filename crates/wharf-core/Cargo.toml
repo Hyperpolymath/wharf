@@ -1,0 +1,27 @@
+[package]
+name = "wharf-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Core library for Project Wharf - shared types, crypto, and SQL AST logic"
+
+[dependencies]
+# SQL AST Parsing (for Database Proxy)
+sqlparser = { workspace = true }
+
+# Cryptography
+ed25519-dalek = { workspace = true }
+blake3 = { workspace = true }
+argon2 = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error Handling
+thiserror = { workspace = true }
+anyhow = { workspace = true }
+
+# Logging
+tracing = { workspace = true }

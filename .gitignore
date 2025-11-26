@@ -1,0 +1,47 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# Distribution/build outputs
+/dist/
+
+# Secrets and keys (NEVER commit these!)
+*.key
+*.pem
+infra/nebula/*.key
+infra/nebula/*.crt
+!infra/nebula/.gitkeep
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Variable files with secrets
+vars/*.json
+!vars/example.json
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Coverage reports
+tarpaulin-report.html
+coverage/

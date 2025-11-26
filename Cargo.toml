@@ -1,0 +1,55 @@
+[workspace]
+members = [
+    "crates/wharf-core",
+    "bin/wharf-cli",
+    "bin/yacht-agent",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+authors = ["Jonathan D. A. Jewell <hyperpolymath>"]
+license = "MIT"
+repository = "https://gitlab.com/hyperpolymath/wharf"
+description = "The Sovereign Web Hypervisor - Immutable CMS Infrastructure"
+
+[workspace.dependencies]
+# CLI & Async
+clap = { version = "4.4", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
+
+# Configuration
+nickel-lang-core = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Database Proxy (AST-aware SQL filtering)
+sqlparser = "0.39"
+
+# Authentication (FIDO2 / Hardware Keys)
+webauthn-rs = "0.4"
+
+# Cryptography
+ed25519-dalek = "2.0"
+blake3 = "1.5"
+argon2 = "0.5"
+
+# Networking
+trust-dns-client = "0.23"
+trust-dns-server = "0.23"
+
+# Logging & Error Handling
+tracing = "0.1"
+tracing-subscriber = "0.3"
+anyhow = "1.0"
+thiserror = "1.0"
+
+# File System Monitoring
+notify = "6.1"
+
+# HTTP Proxy
+hyper = { version = "1.0", features = ["full"] }
+axum = "0.7"
+tower = "0.4"

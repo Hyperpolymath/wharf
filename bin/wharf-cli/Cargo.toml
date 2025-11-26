@@ -1,0 +1,32 @@
+[package]
+name = "wharf-cli"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "The Wharf Controller CLI - Offline administration for the Web Hypervisor"
+
+[[bin]]
+name = "wharf"
+path = "src/main.rs"
+
+[dependencies]
+wharf-core = { path = "../../crates/wharf-core" }
+
+# CLI
+clap = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+
+# Config
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+# Errors
+anyhow = { workspace = true }
