@@ -1,49 +1,50 @@
 # SPDX-License-Identifier: MIT
 # SPDX-FileCopyrightText: 2025 Jonathan D. A. Jewell <hyperpolymath>
 #
-# Wolfi Nginx Container for Project Wharf
-# ========================================
-# A minimal, hardened reverse proxy / web server:
-# - No shell, no package manager at runtime
-# - Non-root user (binds to 8080, not 80)
-# - Strict security headers enforced
-# - JSON logging for observability
+# Nginx Container for Project Wharf
+# ==================================
+# Hardened reverse proxy with security headers.
 #
-# The eBPF firewall redirects port 80 -> 8080 transparently.
+# Build: podman build -t yacht-nginx:latest -f infra/containers/nginx.Dockerfile .
+# Run:   podman run -d -p 8080:8080 -v ./html:/var/www/html:ro yacht-nginx:latest
 
-# -----------------------------------------------------------------------------
-# Runtime Stage (Single stage - Chainguard provides pre-hardened base)
-# -----------------------------------------------------------------------------
-FROM cgr.dev/chainguard/nginx:latest
+ARG BASE_IMAGE=docker.io/library/nginx:alpine
 
-# Copy our hardened Nginx configuration
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="Yacht Nginx"
+LABEL org.opencontainers.image.description="Hardened Nginx for Project Wharf"
+LABEL org.opencontainers.image.vendor="Hyperpolymath"
+
+# Remove default config
+RUN rm -rf /etc/nginx/conf.d/*
+
+# Copy our hardened configuration
 COPY infra/config/nginx.conf /etc/nginx/nginx.conf
-
-# Copy CMS-specific rules (WordPress by default)
 COPY infra/config/wordpress-rules.conf /etc/nginx/conf.d/default.conf
 
-# Create required directories for non-root operation
-# These must exist even though they'll be tmpfs mounts
-USER root
-RUN mkdir -p /tmp/client_temp \
-    && mkdir -p /tmp/proxy_temp \
-    && mkdir -p /tmp/fastcgi_temp \
-    && mkdir -p /tmp/uwsgi_temp \
-    && mkdir -p /tmp/scgi_temp \
+# Create required directories
+RUN mkdir -p /tmp/nginx \
     && mkdir -p /var/www/html \
-    && chown -R nonroot:nonroot /tmp \
-    && chown -R nonroot:nonroot /var/www/html
+    && mkdir -p /var/cache/nginx
 
-# SECURITY: Switch to non-root
-USER nonroot
+# Create non-root user and fix permissions
+RUN addgroup -g 1000 wharf 2>/dev/null || true \
+    && adduser -u 1000 -G wharf -s /bin/false -D wharf 2>/dev/null || true \
+    && chown -R wharf:wharf /var/www/html \
+    && chown -R wharf:wharf /var/cache/nginx \
+    && chown -R wharf:wharf /tmp/nginx \
+    && chown -R wharf:wharf /var/log/nginx \
+    && touch /var/run/nginx.pid \
+    && chown wharf:wharf /var/run/nginx.pid
 
-# NETWORK: Non-privileged ports (privileged ports require root)
-# eBPF firewall handles 80->8080 and 443->8443 redirection
-EXPOSE 8080 8443
+USER wharf
+WORKDIR /var/www/html
 
-# HEALTH CHECK
+# Non-privileged port (use eBPF or iptables to redirect 80->8080)
+EXPOSE 8080
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+    CMD wget -q --spider http://localhost:8080/health || exit 1
 
-# ENTRYPOINT: Direct binary execution
 CMD ["nginx", "-g", "daemon off;"]

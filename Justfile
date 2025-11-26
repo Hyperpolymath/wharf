@@ -254,6 +254,16 @@ test:
     @echo ">>> Running tests..."
     cargo test --workspace
 
+# Quick smoke test (sanity check)
+smoke-test:
+    @echo ">>> Running smoke tests..."
+    ./scripts/smoke_test.sh
+
+# Smoke test with container builds
+smoke-test-full:
+    @echo ">>> Running full smoke tests with container builds..."
+    ./scripts/smoke_test.sh --build
+
 # Run tests with coverage
 test-coverage:
     @echo ">>> Running tests with coverage..."

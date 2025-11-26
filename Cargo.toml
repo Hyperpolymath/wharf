@@ -1,15 +1,17 @@
 [workspace]
 members = [
     "crates/wharf-core",
-    "crates/wharf-ebpf",
     "bin/wharf-cli",
     "bin/yacht-agent",
 ]
+# eBPF crate excluded from default build - requires special toolchain (bpf-linker)
+# Build separately with: cd crates/wharf-ebpf && cargo +nightly build --target bpfel-unknown-none
+exclude = ["crates/wharf-ebpf"]
 resolver = "2"
 
 [workspace.package]
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 authors = ["Jonathan D. A. Jewell <hyperpolymath>"]
 license = "MIT"
 repository = "https://gitlab.com/hyperpolymath/wharf"
