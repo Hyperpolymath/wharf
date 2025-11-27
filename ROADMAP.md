@@ -1,134 +1,213 @@
-# Project Wharf Roadmap
-
-This document outlines the planned development roadmap for Project Wharf.
+# Wharf Roadmap
 
 ## Vision
 
 Make CMS security as reliable as containerized infrastructure by separating
 administration from runtime.
 
-## Current Status: v0.1.0 (Foundation)
+---
 
-✅ Completed:
-- Core architecture design
-- Rust workspace structure
-- DNS zone templates
-- Nickel policy schemas
-- CMS adapter stubs
+## Current Status: v1.0.0 (Foundation) ✅
 
-## Roadmap
+Production-ready sovereign web hypervisor with:
 
-### v0.2.0 - Core Functionality (Q1 2026)
+- ✅ Offline admin (Wharf) + read-only runtime (Yacht) architecture
+- ✅ File sync with BLAKE3 integrity verification
+- ✅ Remote integrity verification via SSH
+- ✅ Fleet management with TOML configuration
+- ✅ eBPF XDP firewall with nftables fallback
+- ✅ Distroless containers (Chainguard)
+- ✅ OpenLiteSpeed + LSAPI PHP
+- ✅ Prometheus metrics endpoint
+- ✅ Let's Encrypt SSL automation
+- ✅ SQL query filtering proxy
+- ✅ WordPress adapter
 
-**Database Proxy**
-- [ ] MySQL/MariaDB protocol implementation
-- [ ] AST-based query filtering (production-ready)
-- [ ] Policy hot-reloading
-- [ ] Query logging and auditing
+---
 
-**Filesystem Monitor**
-- [ ] BLAKE3 integrity checking
-- [ ] OverlayFS integration
-- [ ] Real-time change detection
-- [ ] Automatic rollback on tampering
+## v1.1 - Observability & Reliability
 
-**Testing**
-- [ ] Unit test coverage >80%
-- [ ] Integration test suite
+**Focus**: Production monitoring, alerting, and operational resilience
+
+### Monitoring
+- [ ] Grafana dashboard templates for Yacht metrics
+- [ ] Alertmanager integration with sensible defaults
+- [ ] Structured logging with JSON output option
+- [ ] Log aggregation support (Loki/Elasticsearch)
+- [ ] Health check endpoints with degradation reporting
+- [ ] Automatic SSL certificate renewal monitoring
+
+### Reliability
+- [ ] Backup verification (restore testing)
+- [ ] Disaster recovery runbook automation
+- [ ] Performance benchmarking suite
+- [ ] Load testing integration (k6/locust)
+
+### Technical Debt
+- [ ] Comprehensive test coverage (unit + integration)
+- [ ] CI/CD pipeline templates (GitHub Actions, GitLab CI)
+- [ ] Documentation site (mdBook)
 - [ ] Security fuzzing
 
-### v0.3.0 - Networking (Q2 2026)
+---
 
-**Nebula Integration**
-- [ ] Certificate generation CLI
-- [ ] Automatic mesh discovery
-- [ ] Firewall rule compilation
-- [ ] Health monitoring
+## v1.2 - Multi-tenancy & Scale
 
-**HTTP Airlock**
-- [ ] Header sanitization proxy
-- [ ] CSP injection
-- [ ] Request logging
-- [ ] Rate limiting
+**Focus**: Multiple sites per yacht, horizontal scaling
 
-### v0.4.0 - Authentication (Q3 2026)
+### Multi-Site
+- [ ] Multiple WordPress sites on single yacht
+- [ ] Site isolation (separate users, namespaces)
+- [ ] Resource quotas per site (CPU, memory, I/O)
+- [ ] Per-site integrity manifests
 
-**FIDO2/WebAuthn**
-- [ ] Hardware key registration
-- [ ] Challenge-response authentication
-- [ ] Session management
-- [ ] Emergency recovery
+### Scaling
+- [ ] Automatic yacht provisioning (Terraform modules)
+- [ ] Load balancer integration (HAProxy, Traefik)
+- [ ] Geographic distribution support
+- [ ] CDN integration (Cloudflare, Fastly, Bunny)
+- [ ] Edge caching configuration
 
-**Mooring Protocol**
-- [ ] Secure state synchronization
-- [ ] Incremental updates
-- [ ] Conflict resolution
-- [ ] Audit logging
+### Security
+- [ ] Rate limiting per site
+- [ ] DDoS mitigation integration
+- [ ] Geo-blocking support
 
-### v0.5.0 - CMS Adapters (Q4 2026)
+### Operations
+- [ ] Rolling updates with zero downtime
+- [ ] Canary deployments
+- [ ] Automatic failover between yachts
+- [ ] Fleet-wide configuration drift detection
 
-**WordPress**
-- [ ] Production-ready db.php
-- [ ] wp-config.php hardening
-- [ ] Plugin compatibility layer
-- [ ] WooCommerce support
+---
 
-**Drupal**
-- [ ] Settings.php integration
-- [ ] Drush compatibility
-- [ ] Config sync support
+## v2.0 - ArangoDB & Graph Intelligence
 
-**Others**
-- [ ] Joomla adapter
-- [ ] Moodle adapter
-- [ ] Generic LAMP adapter
+**Focus**: Replace MySQL with ArangoDB, enable graph-based security analysis
 
-### v1.0.0 - Production Ready (Q1 2027)
+### Core Changes
+- [ ] ArangoDB as primary database option
+- [ ] WordPress adapter for ArangoDB (WP-Arango plugin)
+- [ ] MySQL-to-ArangoDB migration tool
+- [ ] AQL query proxy (replace SQL proxy)
+- [ ] Graph-based audit trails
 
-**Stability**
-- [ ] Security audit (third-party)
-- [ ] Performance benchmarks
-- [ ] Documentation complete
-- [ ] Migration guides
+### Security Intelligence
+- [ ] Attack pattern graph detection
+- [ ] User behavior anomaly detection
+- [ ] Content relationship mapping
+- [ ] Permission inheritance visualization
+- [ ] Automated threat correlation
+- [ ] Security event graph queries
 
-**Operations**
-- [ ] Monitoring integration (Prometheus)
-- [ ] Alerting configuration
-- [ ] Backup/restore procedures
-- [ ] Disaster recovery
+### Developer Experience
+- [ ] Graph query builder UI
+- [ ] Visual audit trail explorer
+- [ ] Relationship impact analysis
+- [ ] Schema migration tools
+
+---
+
+## v2.1 - Team Collaboration
+
+**Focus**: Multi-operator access and workflow management
+
+### Access Control
+- [ ] RBAC (Role-Based Access Control)
+- [ ] Multiple operator SSH keys
+- [ ] Audit logging for all operations
+- [ ] SSO integration (OIDC, SAML)
+- [ ] FIDO2/WebAuthn authentication option
+- [ ] Session management and revocation
+
+### Workflows
+- [ ] Change approval workflows
+- [ ] Deployment scheduling
+- [ ] Team notifications (Slack, Discord, Email)
+- [ ] Content staging environments
+- [ ] Preview deployments
+- [ ] Rollback with one command
+- [ ] Change diff visualization
+- [ ] Deployment history and blame
+
+---
+
+## v2.2 - Content Intelligence
+
+**Focus**: AI-assisted content and security analysis
+
+### Content Quality
+- [ ] Content quality scoring
+- [ ] SEO analysis integration
+- [ ] Broken link detection
+- [ ] Image optimization pipeline
+- [ ] Accessibility audit (WCAG)
+
+### Security Scanning
+- [ ] Security content scanning (leaked secrets, PII)
+- [ ] Malware signature detection in uploads
+- [ ] Plugin/theme vulnerability scanning
+- [ ] Dependency audit (CVE checking)
+
+---
+
+## v3.0 - Platform
+
+**Focus**: Self-service platform for managed hosting
+
+### Self-Service
+- [ ] Web dashboard for fleet management
+- [ ] Self-service site provisioning
+- [ ] Customer portal
+- [ ] API for third-party integrations
+
+### Business
+- [ ] Billing and metering integration
+- [ ] White-label support
+- [ ] Marketplace for approved plugins/themes
+- [ ] Custom SLA management
+
+### Enterprise
+- [ ] Private cloud deployment
+- [ ] Air-gapped operation mode
+- [ ] Compliance reporting (SOC2, GDPR, HIPAA)
+- [ ] Priority support integration
+- [ ] Automated security patching
+
+---
 
 ## Future Considerations
 
-### Post-1.0 Features
+### Beyond WordPress
+- [ ] Drupal support
+- [ ] Static site generators (Hugo, Jekyll, Astro)
+- [ ] Custom PHP applications
+- [ ] Laravel/Symfony support
+- [ ] Joomla adapter
+- [ ] Magento e-commerce
+- [ ] MediaWiki
 
-- **eBPF Integration**: Kernel-level packet filtering
-- **WASM Plugins**: Extensible policy engine
-- **Multi-tenant**: Manage multiple fleets
-- **GUI**: Web-based Wharf interface
-- **Mobile**: iOS/Android mooring apps
+### Infrastructure
+- [ ] Kubernetes operator
+- [ ] Nomad job specifications
+- [ ] ARM64 support
+- [ ] RISC-V exploration
+- [ ] Unikernel deployment option
 
-### Platform Expansion
+### Security Research
+- [ ] Formal verification of sync protocol
+- [ ] eBPF program verification
+- [ ] Supply chain attestation (SLSA)
+- [ ] Reproducible builds
 
-- **Magento**: E-commerce adapter
-- **Ghost**: Publishing platform
-- **Discourse**: Forum adapter
-- **MediaWiki**: Wiki adapter
+---
 
-### Integration
+## Version Support Policy
 
-- **Cloudflare**: CDN integration
-- **Let's Encrypt**: Automatic certificates
-- **Grafana**: Dashboard templates
-- **PagerDuty**: Alerting integration
-
-## End-of-Life Planning
-
-### Version Support Policy
-
-| Version | Support Status | End of Support |
-|---------|---------------|----------------|
-| 0.x | Development | Until 1.0 release |
-| 1.x | LTS | 1.0 + 3 years |
+| Version | Support Status | Support Duration |
+|---------|---------------|------------------|
+| 1.x | LTS | 3 years from release |
+| 2.x | Current | Until 3.0 + 1 year |
 
 ### Sunset Procedure
 
@@ -139,30 +218,26 @@ When a version reaches end-of-life:
 3. **At EOL**: Security fixes only
 4. **6 months after EOL**: Version archived
 
-### Succession Planning
+---
 
-If the project is no longer maintained:
+## Contributing
 
-1. Repository transferred to Software Freedom Conservancy
-2. Community fork encouraged
-3. All documentation archived
-4. Security contacts updated
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose features.
 
-## Contributing to the Roadmap
+## Versioning
 
-We welcome input on the roadmap:
+Wharf follows [Semantic Versioning](https://semver.org/):
+- **MAJOR**: Breaking changes to sync protocol or config format
+- **MINOR**: New features, backward compatible
+- **PATCH**: Bug fixes, security patches
 
-1. Open a GitLab Issue with `roadmap` label
-2. Describe the feature/change
-3. Explain the use case
-4. Discuss in community meeting
+---
 
 ## Version History
 
 | Version | Date | Status |
 |---------|------|--------|
-| 0.1.0 | 2025-11-26 | Current |
-
----
+| 1.0.0 | 2025-11-27 | Current |
+| 0.1.0 | 2025-11-26 | Development |
 
 *This roadmap is subject to change based on community feedback and priorities.*
