@@ -1,76 +1,267 @@
-= wharf
-Jonathan D.A. Jewell <jonathan.jewell@gmail.com>
-:toc: macro
+= Project Wharf
+:toc: left
+:toclevels: 3
 :icons: font
-:source-highlighter: rouge
-:experimental:
-:url-github: https://github.com/hyperpolymath/wharf
-:url-gitlab: https://gitlab.com/hyperpolymath/wharf
-:url-bitbucket: https://bitbucket.org/hyperpolymath/wharf
-:url-codeberg: https://codeberg.org/hyperpolymath/wharf
+:source-highlighter: highlight.js
 
-Container deployment and harbor management
+== The Sovereign Web Hypervisor
 
-image:https://img.shields.io/badge/RSR-Certified-gold[RSR Certified]
-image:https://img.shields.io/badge/License-AGPL%20v3-blue[License]
+image::docs/wharf-architecture.png[Wharf Architecture,align="center"]
 
-toc::[]
+*Wharf* is a revolutionary approach to Content Management System (CMS) security that separates administration from runtime. Instead of plugins with full system access running on your live site, Wharf uses an *offline controller* (the Wharf) and a *read-only runtime* (the Yacht) connected via a Zero Trust mesh network.
 
-== Overview
+=== Core Philosophy
 
-wharf is part of the link:https://rhodium.sh[Rhodium Standard] (RSR) ecosystem.
+[quote]
+The gun should not be in the safe.
 
-Domain: *software-development*
+Traditional CMS security is like storing the vault's drill, dynamite, and blueprints *inside* the vault. If an attacker gets in, they use your own tools against you.
 
-== Installation
+Wharf inverts this:
+
+* *The Yacht (Live Site)*: A neutered runtime. It serves content but cannot install plugins, edit code, or change configuration.
+* *The Wharf (Controller)*: Your offline workshop. It holds the keys, runs diagnostics, and makes all administrative decisions.
+* *The Mooring*: A cryptographically secured connection that temporarily allows the Wharf to sync state to the Yacht.
+
+== Architecture
+
+[source]
+----
+      THE WHARF (Offline Controller)               THE YACHT (Online Runtime)
+    +--------------------------------+          +------------------------------+
+    | [Physical/Local Hardware]      |          | [Cloud/Edge Server]          |
+    |                                |          |                              |
+    |  1. IDENTITY (The Keys)        |          |  4. THE SHIELD (Rust Agent)  |
+    |     • Nitrokey / FIDO2         |          |     • eBPF Force Field       |
+    |     • Argon2id + LUKS          |          |     • Header Airlock         |
+    |                                |          |     • DB Proxy (AST Aware)   |
+    |  2. INTENT (The Brain)         |          |                              |
+    |     • Nickel Config Schema     |          |  5. THE PAYLOAD (Legacy)     |
+    |     • Nebula CA (Offline)      |          |     • WordPress / Drupal     |
+    |     • Rust Compiler            |          |     • Read-Only Filesystem   |
+    |                                |          |     • Ephemeral RAM Disk     |
+    +---------------+----------------+          +--------------+---------------+
+                    |                                          |
+                    |         THE MOORING (Zero Trust)         |
+                    |                                          |
+                    +==========================================+
+                    |  • Hidden UDP Port (Nebula Mesh)         |
+                    |  • Mutual TLS (mTLS)                     |
+                    |  • Invisible to Public Internet          |
+                    +==========================================+
+----
+
+== Key Features
+
+=== Database "Virtual Sharding"
+
+The Yacht Agent acts as a SQL proxy, parsing queries using an *Abstract Syntax Tree* (not regex!) to enforce security policies:
+
+* *Mutable Tables* (Blue Zone): Content like comments and orders—allowed to write
+* *Immutable Tables* (Red Zone): Config like users and plugins—blocked unless from Wharf
+* *Hybrid Tables* (Grey Zone): Mixed content like `wp_options`—conditional rules
+
+[source,sql]
+----
+-- ALLOWED: User comment
+INSERT INTO wp_comments (comment_content) VALUES ('Great post!')
+
+-- BLOCKED: New admin user
+INSERT INTO wp_users (user_login, user_pass) VALUES ('hacker', 'password')
+-- Error: Policy violation: write to immutable table 'wp_users'
+----
+
+=== Filesystem Immutability
+
+The Yacht filesystem is mounted read-only with specific writable "playgrounds":
+
+|===
+| Path | Type | Purpose
+
+| `/wp-content/uploads` | Persistent, No PHP | User media files
+| `/wp-content/cache` | RAM Disk (tmpfs) | Temporary cache—wipes on restart
+| `/wp-content/plugins` | OverlayFS | "The Lie"—plugins think they write, but it's ephemeral
+|===
+
+=== HTTP Header Airlock
+
+A Rust-based HTTP proxy strips dangerous headers and injects security headers:
+
+[source]
+----
+# Stripped (Information Leakage)
+- Server: Apache/2.4.41
+- X-Powered-By: PHP/8.1
+
+# Injected (Security Hardening)
++ Cross-Origin-Opener-Policy: same-origin
++ Cross-Origin-Embedder-Policy: require-corp
++ Permissions-Policy: camera=(), microphone=()
+----
+
+=== Zero Trust Networking (Nebula)
+
+Admin ports are *invisible* to the public internet. The Yacht's management API (port 9000) only responds to devices with valid Nebula certificates.
+
+== Quick Start
+
+=== Prerequisites
+
+* Rust (via rustup)
+* Podman (or Docker)
+* Just (command runner)
+* Optional: Nebula, named-checkzone (bind-utils)
+
+=== Installation
 
 [source,bash]
 ----
-# Clone from GitHub (primary)
-git clone {url-github}
+# Clone the repository
+git clone https://gitlab.com/hyperpolymath/wharf.git
+cd wharf
 
-# Or from mirrors
-git clone {url-gitlab}
-git clone {url-codeberg}
+# Initialize the workspace
+just init
+
+# Build everything
+just build
 ----
 
-== RSR Stack
+=== Basic Usage
 
-This project follows RSR conventions:
+[source,bash]
+----
+# Create zone file variables
+cat > vars/example.json << 'EOF'
+{
+  "domain": "example.com",
+  "ip": "192.0.2.1",
+  "ipv6": "2001:db8::1",
+  "nameserver": "ns1.example.com",
+  "nameserver2": "ns2.example.com",
+  "rpemail": "hostmaster.example.com",
+  "serial": "2025112601",
+  "ttl": "3600",
+  "nsttl": "86400"
+}
+EOF
 
-* ✅ ReScript for frontend/logic
-* ✅ Deno for JS runtime
-* ✅ WASM for performance-critical code
-* ✅ Rust/OCaml/Haskell for systems/proofs
-* ✅ Guile/Scheme for configuration
-* ❌ No TypeScript
-* ❌ No Go
-* ❌ No npm
+# Build DNS zone files
+just build-zones
 
-== Mirrors
+# Audit the generated zone
+just audit-zone dist/example.db example.com
 
-[cols="1,2"]
+# Detect if dedicated or shared hosting
+just detect-env example.com 192.0.2.1
+----
+
+== DNS Zone Templates
+
+Wharf includes four DNS templates for different environments:
+
 |===
-| Platform | URL
+| Template | Use Case | Key Difference
 
-| GitHub (primary) | {url-github}
-| GitLab | {url-gitlab}
-| Bitbucket | {url-bitbucket}
-| Codeberg | {url-codeberg}
+| `simple.tpl` | Modern minimum viable | Basic records + email deliverability (SPF, DMARC, CAA)
+| `shared.tpl` | Shared/Virtual hosting | Uses CNAMEs, includes provider SPF, no SSHFP
+| `standard.tpl` | Dedicated IP | Explicit FTP A record, full control
+| `maximalist.tpl` | Enterprise/Security-focused | DANE, SSHFP, OPENPGPKEY, HTTPS/SVCB, LOC
 |===
 
-== License
+== CMS Adapters
 
-Licensed under AGPL-3.0-or-later OR LicenseRef-Palimpsest-0.5.
+Wharf includes adapters for popular CMS platforms:
 
-See link:LICENSE[LICENSE] for details.
+=== WordPress
+
+[source,bash]
+----
+# Copy the DB proxy drop-in
+cp adapters/wordpress/db.php /var/www/html/wp-content/db.php
+
+# The Yacht Agent must be running on 127.0.0.1:3307
+----
+
+=== Drupal
+
+[source,bash]
+----
+# Include the settings override
+echo "include_once '/opt/wharf/adapters/drupal/settings.php';" >> sites/default/settings.php
+----
+
+=== Others
+
+* Joomla (adapter included)
+* Moodle (adapter included)
+* Generic LAMP (customizable adapter)
+
+== Security Model
+
+=== Threat Model
+
+Wharf assumes:
+
+* The live server (Yacht) is *hostile territory*
+* Attackers may have SQL injection or file upload vulnerabilities
+* Network is *untrusted* (even internal networks)
+
+=== Protections
+
+|===
+| Attack Vector | Wharf Defense
+
+| SQL Injection → New Admin User | Database proxy blocks writes to `wp_users`
+| File Upload → PHP Shell | Uploads directory has `php_flag engine off`
+| Plugin Backdoor | Plugins directory is read-only (OverlayFS)
+| Config Tampering | `wp-config.php` changes trigger instant revert
+| Network Sniffing | Nebula mesh encrypts all admin traffic
+|===
+
+== Configuration Reference
+
+Wharf uses https://nickel-lang.org/[Nickel] for declarative configuration:
+
+* `configs/fleet.ncl` - Define your Yachts
+* `configs/policies/database.ncl` - Database virtual sharding rules
+* `configs/policies/airlock.ncl` - HTTP header rules
+* `configs/policies/filesystem.ncl` - File immutability policies
+* `configs/policies/auth.ncl` - FIDO2 and session policies
+* `configs/policies/network.ncl` - Nebula mesh and firewall rules
+
+== Justfile Commands
+
+[source]
+----
+just init              # Initialize workspace
+just build             # Compile everything
+just moor <target>     # Connect to a Yacht
+just audit <target>    # Security audit
+just gen-nebula-ca     # Generate mesh CA
+just gen-yacht-cert    # Generate Yacht certificate
+just gen-email-records # Generate SPF/DKIM/DMARC
+just deploy-yacht      # Deploy agent to server
+----
 
 == Contributing
 
-See link:CONTRIBUTING.adoc[CONTRIBUTING.adoc].
+Contributions are welcome! Please ensure:
 
-== Metadata
+1. Code passes `just lint` and `just fmt-check`
+2. Tests pass with `just test`
+3. Security-sensitive changes are documented
 
-* Domain: software-development
-* Framework: RSR (Rhodium Standard Repository)
-* Dublin Core: link:.well-known/dc.xml[.well-known/dc.xml]
+== License
+
+MIT License. See LICENSE file for details.
+
+== Credits
+
+* Concept by Jonathan D. A. Jewell (@hyperpolymath)
+* Built with Rust, Nickel, Nebula, and Podman
+
+---
+
+[quote, Project Wharf Manifesto]
+"The admin panel has no place on the production server."
